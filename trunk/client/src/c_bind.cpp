@@ -101,7 +101,13 @@ char DefBindings[] =
 	"bind f8 togglemessages; "
 	"bind f9 quickload; "
 	"bind f10 menu_quit; "
+#if !defined(__GCW0__)
 	"bind tab togglemap; "
+#else
+	"bind escape togglemap; "
+	"bind tab weapprev; "
+	"bind backspace weapnext; "
+#endif
 	"bind pause pause; "
 	"bind sysrq screenshot; "			// <- Also known as the Print Screen key
 	"bind t messagemode; "
@@ -227,6 +233,83 @@ static const char *KeyName (int key)
 	sprintf (name, "#%d", key);
 	return name;
 }
+
+#if defined(__GCW0__)
+const char *prettyKeyNames[] =
+{
+	"left"
+	,"right"
+	,"up"
+	,"down"
+	,"A"
+	,"B"
+	,"X"
+	,"Y"
+	,"start"
+	,"select"
+	,"L"
+	,"R"
+};
+
+/*
+ * Get string from the predefined list above.
+ */
+static const char *prettyKeyName (int key)
+{
+	static char name[5];
+
+	int k;
+
+	switch (key)
+	{
+	case KEY_LEFTARROW:
+		k = 0;
+	break;
+	case KEY_RIGHTARROW:
+		k = 1;
+	break;
+	case KEY_UPARROW:
+		k = 2;
+	break;
+	case KEY_DOWNARROW:
+		k = 3;
+	break;
+
+	case KEY_LCTRL:
+		k = 4;
+	break;
+	case KEY_LALT:
+		k = 5;
+	break;
+	case KEY_LSHIFT:
+		k = 6;
+	break;
+	case KEY_SPACE:
+		k = 7;
+	break;
+
+	case KEY_ENTER:
+		k = 8;
+	break;
+	case KEY_ESCAPE:
+		k = 9;
+	break;
+
+	case KEY_BACKSPACE:
+		k = 10;
+	break;
+	case KEY_TAB:
+		k = 11;
+	break;
+	default:
+		return NULL;
+	break;
+	}
+
+	return prettyKeyNames[k];
+}
+#endif
+
 
 BEGIN_COMMAND (unbindall)
 {
@@ -543,16 +626,36 @@ std::string C_NameKeys (int first, int second)
 
 	std::string out;
 
+#if !defined(__GCW0__)
 	if(first)
 	{
 		out += KeyName(first);
 		if(second)out += " or ";
 	}
+#else
+	const char *fi = prettyKeyName(first),
+	*se = prettyKeyName(second);
 
+	if (first && fi) {
+		out += fi;
+		if (second && se) out += " or ";
+	}
+#endif
+
+#if !defined(__GCW0__)
 	if(second)
 	{
 		out += KeyName(second);
 	}
+#else
+	if (second && se) {
+		out += se;
+	}
+
+	if (!se && !fi) {
+		out += "???";
+	}
+#endif
 
 	return out;
 }
