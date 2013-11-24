@@ -1054,7 +1054,7 @@ static char VMEnterText[] = "Press A to set mode";
 static char VMTestText[] = "Press X to test mode for 5 seconds";
 #elif defined(__GCW0__)
 static char VMEnterText[] = "Press A to set mode";
-static char VMTestText[] = "Press X to test mode for 5 seconds";
+static char VMTestText[] = "Press Y to test mode for 5 seconds";
 #else
 static char VMEnterText[] = "Press ENTER to set mode";
 static char VMTestText[] = "Press T to test mode for 5 seconds";
@@ -2160,6 +2160,8 @@ void M_OptResponder (event_t *ev)
 		default:
 #ifdef _XBOX
 			if (ev->data2 == 't' || ev->data2 == KEY_JOY3)
+#elif defined (__GCW0__)
+			if (ev->data2 == ' ')
 #else
 			if (ev->data2 == 't')
 #endif
