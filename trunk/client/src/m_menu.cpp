@@ -58,6 +58,18 @@
 #include "i_xbox.h"
 #endif
 
+static inline bool __CONFIRM_MACRO(int ch)
+{
+	if (isascii(ch))
+		if (toupper(ch) == 'Y')
+			return false;
+
+	if ((ch == KEY_JOY4) || (ch == KEY_LCTRL))
+		return false;
+
+	return true;
+}
+
 extern patch_t* 	hu_font[HU_FONTSIZE];
 
 // temp for screenblocks (0-9)
@@ -806,7 +818,7 @@ char	tempstring[80];
 
 void M_QuickSaveResponse(int ch)
 {
-	if (ch == 'y' || ch == KEY_JOY4)
+	if (!__CONFIRM_MACRO(ch))
 	{
 		M_DoSave (quickSaveSlot);
 		S_Sound (CHAN_INTERFACE, "switches/exitbutn", 1, ATTN_NONE);
@@ -853,7 +865,7 @@ void M_QuickSave(void)
 //
 void M_QuickLoadResponse(int ch)
 {
-	if (ch == 'y' || ch == KEY_JOY4)
+	if (!__CONFIRM_MACRO(ch))
 	{
 		M_LoadSelect(quickSaveSlot);
 		S_Sound (CHAN_INTERFACE, "switches/exitbutn", 1, ATTN_NONE);
@@ -1122,7 +1134,7 @@ void M_Options(int choice)
 //
 void M_EndGameResponse(int ch)
 {
-	if ((!isascii(ch) || toupper(ch) != 'Y') && ch != KEY_JOY4 ) {
+	if (__CONFIRM_MACRO(ch)) {
 	    M_ClearMenus ();
 		return;
 	}
@@ -1153,7 +1165,7 @@ void STACK_ARGS call_terms (void);
 
 void M_QuitResponse(int ch)
 {
-	if ((!isascii(ch) || toupper(ch) != 'Y') && ch != KEY_JOY4 ) {
+	if (__CONFIRM_MACRO(ch)) {
 	    M_ClearMenus ();
 		return;
 	}
@@ -1878,13 +1890,17 @@ bool M_Responder (event_t* ev)
 	{
 		if (messageNeedsInput &&
 			(!(ch2 == ' ' || ch == KEY_ESCAPE || ch == KEY_JOY2 || ch == KEY_JOY4 ||
-			 (isascii(ch2) && (toupper(ch2) == 'N' || toupper(ch2) == 'Y')))))
+			(isascii(ch2) && (toupper(ch2) == 'N' || toupper(ch2) == 'Y' || ch == KEY_LCTRL || ch == KEY_LALT)))))
 			return true;
 
 		menuactive = messageLastMenuActive;
 		messageToPrint = 0;
+		/*if (messageRoutine)
+			messageRoutine(ch2);*/
 		if (messageRoutine)
-			messageRoutine(ch2);
+		{
+			messageRoutine((ch == ch2) ? ch2 : ch);
+		}
 
 		menuactive = false;
 		S_Sound (CHAN_INTERFACE, "switches/exitbutn", 1, ATTN_NONE);
@@ -1907,6 +1923,8 @@ bool M_Responder (event_t* ev)
 		// [ML] This is a regular binding now too!
 #ifdef _XBOX
 		if (ch == KEY_ESCAPE || ch == KEY_JOY9)
+#elif __GCW0__
+		if (ch == KEY_ENTER)
 #else
 		if (ch == KEY_ESCAPE)
 #endif
@@ -1979,7 +1997,11 @@ bool M_Responder (event_t* ev)
 		return true;
 
 	  case KEY_JOY1:
+#ifdef __GCW0__
+	  case KEY_LCTRL:
+#else
 	  case KEY_ENTER:
+#endif
 	  case KEYP_ENTER:
 		if (currentMenu->menuitems[itemOn].routine &&
 			currentMenu->menuitems[itemOn].status)
@@ -2003,9 +2025,19 @@ bool M_Responder (event_t* ev)
 	  //	  is now ignored.
 	  case KEY_JOY2:
 	  case KEY_ESCAPE:
+#ifdef __GCW0__
+	  case KEY_LALT:
+#endif
 		currentMenu->lastOn = itemOn;
 		M_PopMenuStack ();
 		return true;
+
+#ifdef __GCW0__
+		case KEY_ENTER:
+			M_ClearMenus ();
+			S_Sound (CHAN_INTERFACE, "switches/exitbutn", 1, ATTN_NONE);
+			break;
+#endif
 
 	  default:
 		if (ch2 && (ch < KEY_JOY1)) {

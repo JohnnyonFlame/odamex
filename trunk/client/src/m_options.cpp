@@ -299,6 +299,8 @@ menu_t OptionMenu = {
 static menuitem_t ControlsItems[] = {
 #ifdef _XBOX
 	{ whitetext,"A to change, START to clear", {NULL}, {0.0}, {0.0}, {0.0}, {NULL} },
+#elif defined(__GCW0__)
+	{ whitetext,"A to change, X to clear", {NULL}, {0.0}, {0.0}, {0.0}, {NULL} },
 #else
 	{ whitetext,"ENTER to change, BACKSPACE to clear", {NULL}, {0.0}, {0.0}, {0.0}, {NULL} },
 #endif
@@ -1047,7 +1049,10 @@ EXTERN_CVAR (vid_fullscreen)
 
 static value_t Depths[22];
 
-#ifdef _XBOX
+#if defined(_XBOX) || defined(__GCW0__)
+static char VMEnterText[] = "Press A to set mode";
+static char VMTestText[] = "Press X to test mode for 5 seconds";
+#elif defined(__GCW0__)
 static char VMEnterText[] = "Press A to set mode";
 static char VMTestText[] = "Press X to test mode for 5 seconds";
 #else
@@ -1579,6 +1584,8 @@ void M_OptResponder (event_t *ev)
 		{
 #ifdef _XBOX
 			if (ch != KEY_ESCAPE && ch != KEY_JOY9)
+#elif defined(__GCW0__)
+			if (ch != KEY_ENTER)
 #else
 			if (ch != KEY_ESCAPE)
 #endif
@@ -1600,7 +1607,11 @@ void M_OptResponder (event_t *ev)
 	{
 		if(ev->type == ev_keydown)
 		{
+#ifdef __GCW0__
+			if(ch != KEY_ENTER)
+#else
 			if(ch == KEY_ESCAPE)
+#endif
 			{
 				WaitingForAxis = false;
 				CurrentMenu->items[8].label = OldAxisMessage;
@@ -2045,8 +2056,11 @@ void M_OptResponder (event_t *ev)
 
 #ifdef _XBOX
 		case KEY_JOY9: // Start button
-#endif
+#elif defined(__GCW0__)
+		case KEY_LSHIFT:
+#else
 		case KEY_BACKSPACE:
+#endif
 			if (item->type == control)
 			{
 				C_UnbindACommand (item->e.command);
@@ -2056,6 +2070,9 @@ void M_OptResponder (event_t *ev)
 
 		case KEY_JOY1:
 		case KEY_ENTER:
+#ifdef __GCW0__
+		case KEY_LCTRL:
+#endif
 			if (CurrentMenu == &ModesMenu)
 			{
 				if (!(item->type == screenres && GetSelectedSize (CurrentItem, &NewWidth, &NewHeight)))
@@ -2101,7 +2118,11 @@ void M_OptResponder (event_t *ev)
 				WaitingForKey = true;
 				OldContMessage = CurrentMenu->items[0].label;
 				OldContType = CurrentMenu->items[0].type;
+#ifdef __GCW0__
+				CurrentMenu->items[0].label = "Press new key for control or START to cancel";
+#else
 				CurrentMenu->items[0].label = "Press new key for control or ESC to cancel";
+#endif
 				CurrentMenu->items[0].type = redtext;
 			}
 			else if (item->type == listelement)
@@ -2115,7 +2136,11 @@ void M_OptResponder (event_t *ev)
 				WaitingForAxis = true;
 				OldAxisMessage = CurrentMenu->items[8].label;
 				OldAxisType = CurrentMenu->items[8].type;
+#ifdef __GCW0__
+				CurrentMenu->items[8].label = "Activate desired analog axis or START to cancel";
+#else
 				CurrentMenu->items[8].label = "Activate desired analog axis or ESC to cancel";
+#endif
 				CurrentMenu->items[8].type = redtext;
 			}
 			else if (item->type == screenres)
@@ -2125,6 +2150,9 @@ void M_OptResponder (event_t *ev)
 
 		case KEY_JOY2:
 		case KEY_ESCAPE:
+#ifdef __GCW0__
+		case KEY_LALT:
+#endif
 			CurrentMenu->lastOn = CurrentItem;
 			M_PopMenuStack ();
 			break;
