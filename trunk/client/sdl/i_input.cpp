@@ -466,6 +466,12 @@ bool I_InitInput (void)
 	if (Args.CheckParm("-nomouse"))
 		nomouse = true;
 
+#if defined(__GCW0__)
+	//TODO:: Find the reason why the input is broken when mouseless, and get rid of this hack.
+
+	nomouse = true;
+#endif
+
 	atterm (I_ShutdownInput);
 
 	SDL_EnableUNICODE(true);

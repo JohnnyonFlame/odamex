@@ -380,7 +380,12 @@ void I_SetMode (int &width, int &height, int &bits)
 
 	if (!res)
 	{
+#if !defined(__GCW0__)
 		I_ClosestResolution (&width, &height, bits);
+#else
+		width = 320;
+		height = 240;
+#endif
 		if (!Video->SetMode (width, height, bits, fs))
 			I_FatalError ("Mode %dx%dx%d is unavailable\n",
 						  width, height, bits);

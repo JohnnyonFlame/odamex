@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-#if defined(UNIX) && !defined(GEKKO)
+#if defined(UNIX) && !defined(GEKKO) && !defined(__GCW0__)
 		if(!getuid() || !geteuid())
 			I_FatalError("root user detected, quitting odamex immediately");
 #endif

@@ -228,8 +228,10 @@ int main (int argc, char **argv)
 {
     try
     {
+#if !defined(__GCW0__)
 		if(!getuid() || !geteuid())
 			I_FatalError("root user detected, quitting odamex immediately");
+#endif
 
 	    seteuid (getuid ());
 
