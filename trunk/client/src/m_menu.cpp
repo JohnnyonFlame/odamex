@@ -1190,7 +1190,11 @@ void M_QuitDOOM (int choice)
 	// We pick index 0 which is language sensitive,
 	//  or one at random, between 1 and maximum number.
 	sprintf (endstring, "%s\n\n%s",
+#ifdef __GCW0__
+		GStrings(QUITMSG + (gametic % NUM_QUITMESSAGES)), "(press A to quit)");
+#else
 		GStrings(QUITMSG + (gametic % NUM_QUITMESSAGES)), GStrings(DOSY));
+#endif
 
 	M_StartMessage(endstring,M_QuitResponse,true);
 }
@@ -1844,6 +1848,85 @@ bool M_Responder (event_t* ev)
 	// [RH] and Player Name string input
 	if (genStringEnter)
 	{
+#ifdef __GCW0__
+
+#define __do_PUTCHAR(evdt3) \
+{ \
+	ch = evdt3; \
+	if (ch >= 32 && ch <= 127 && \
+		saveCharIndex < genStringLen && \
+		V_StringWidth(savegamestrings[saveSlot]) < \
+		(genStringLen-1)*8) \
+	{ \
+	   savegamestrings[saveSlot][saveCharIndex++] = ch; \
+	   savegamestrings[saveSlot][saveCharIndex] = 0; \
+	} \
+}
+
+		switch(ch)
+		{
+		char *tempC;
+	    case KEY_LEFTARROW:
+		if (saveCharIndex > 0)
+		{
+			saveCharIndex--;
+			savegamestrings[saveSlot][saveCharIndex] = 0;
+		}
+		break;
+
+		case KEY_UPARROW:
+			if (saveCharIndex < 1)
+				__do_PUTCHAR(' ');
+			tempC = &savegamestrings[saveSlot][saveCharIndex - 1];
+			if (*tempC == 0)
+				*tempC = 32;
+			else {
+				if (*tempC < 127)
+					(*tempC)++;
+				else
+					*tempC = 0;
+			}
+			break;
+
+		case KEY_DOWNARROW:
+			if (saveCharIndex < 1)
+				__do_PUTCHAR(' ');
+			tempC = &savegamestrings[saveSlot][saveCharIndex - 1];
+			if (*tempC == 0)
+				*tempC = 127;
+			else {
+				if (*tempC > 32)
+					(*tempC)--;
+				else
+					*tempC = 127;
+			}
+			break;
+
+		case KEY_LALT:
+		case KEY_ENTER:
+			genStringEnter = 0;
+			M_ClearMenus ();
+			strcpy(&savegamestrings[saveSlot][0],saveOldString);
+			break;
+
+		case KEY_LCTRL:
+			genStringEnter = 0;
+			M_ClearMenus ();
+			if (savegamestrings[saveSlot][0])
+				genStringEnd(saveSlot);	// [RH] Function to call when enter is pressed
+			break;
+
+		default:
+			if (ch == KEY_RIGHTARROW) {
+				__do_PUTCHAR(' ');
+			}
+			else
+				__do_PUTCHAR(ev->data3);
+			break;
+		}
+
+#undef __do_PUTCHAR
+#else
 		switch(ch)
 		{
 		  case KEY_BACKSPACE:
@@ -1882,6 +1965,7 @@ bool M_Responder (event_t* ev)
 			}
 			break;
 		}
+#endif
 		return true;
 	}
 
