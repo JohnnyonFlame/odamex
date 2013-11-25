@@ -776,6 +776,7 @@ void C_DrawConsole (void)
 
 	left = 8;
 	lines = (ConBottom-12)/8;
+
 	if (-12 + lines*8 > ConBottom - 28)
 		offset = -16;
 	else
@@ -802,6 +803,34 @@ void C_DrawConsole (void)
 			conback->Blit (0, 0, conback->width, conback->height,
 						screen, 0, 0, screen->width, screen->height);
 		}
+
+#ifdef __GCW0__
+        if (CmdLine[1] > 0) {
+			//top
+			char *buff_ = (char*) &CmdLine;
+			buff_ += 1 + CmdLine[1];
+
+			char buff_a[2] = { *buff_, (char) 0, };
+			char buff_b[2] = { *buff_, (char) 0, };
+
+			if (*buff_ == 32) {
+				buff_a[0] = 126;
+				buff_b[0]++;
+			} else if (*buff_ == 126) {
+				buff_a[0]--;
+				buff_b[0] = 32;
+			} else {
+				buff_a[0]--;
+				buff_b[0]++;
+			}
+
+			screen->PrintStr(left + (CmdLine[1] - CmdLine[259]) * 8, ConBottom-10,
+					buff_a, 1);
+			//bottom
+			screen->PrintStr(left + (CmdLine[1] - CmdLine[259]) * 8,
+					ConBottom - 30, buff_b, 1);
+		}
+#endif
 
 		if (ConBottom >= 12)
 		{
@@ -852,7 +881,7 @@ void C_DrawConsole (void)
 	{
 		for (; lines > 1; lines--)
 		{
-			screen->PrintStr (left, offset + lines * 8, (char*)&zap[2], zap[1]);
+			screen->PrintStr (left, (offset + lines * 8) - 10, (char*)&zap[2], zap[1]);
 			zap -= ConCols + 2;
 		}
 		if (ConBottom >= 20)
@@ -1365,7 +1394,160 @@ BOOL C_Responder (event_t *ev)
 	{
 		return false;
 	}
+#ifdef __GCW0__ //virtual keyboard
+	if (ev->type == ev_keyup) {
+		switch (ev->data1) {
 
+		}
+	} else if (ev->type == ev_keydown) {
+		char *buf = (char*) &CmdLine;
+		buf += 1 + CmdLine[1];
+
+		const char *cmd = C_GetBinding(ev->data1);
+		switch (ev->data1) {
+		case KEY_LSHIFT:
+			C_TabComplete();
+			break;
+		case KEY_DOWNARROW:
+			if (CmdLine[1] < 1) {
+				CmdLine[0]++;
+				CmdLine[1]++;
+
+				(*(buf + 1)) = 32; //first ascii
+			} else {
+				if (*buf <= 32)
+					*buf = 126;
+				else
+					(*buf)--;
+
+				makestartposgood();
+			}
+			break;
+		case KEY_UPARROW:
+			if (CmdLine[1] < 1) {
+				CmdLine[0]++;
+				CmdLine[1]++;
+
+				(*(buf + 1)) = 126; //last ascii
+			} else {
+				if (*buf >= 126)
+					*buf = 32;
+				else
+					(*buf)++;
+
+				makestartposgood();
+			}
+			break;
+		case KEY_RIGHTARROW:
+			if (CmdLine[1] < 255) {
+				CmdLine[0]++;
+				CmdLine[1]++;
+
+				(*(buf + 1)) = 32; //first ascii
+			}
+			break;
+		case KEY_LEFTARROW:
+			if (CmdLine[1] > 0) {
+				CmdLine[0]--;
+				CmdLine[1]--;
+
+				(*buf) = 0; //clear
+			}
+			break;
+		case KEY_TAB:
+			// Move to previous entry in the command history
+
+			if (HistPos == NULL) {
+				HistPos = HistHead;
+			} else if (HistPos->Older) {
+				HistPos = HistPos->Older;
+			}
+
+			if (HistPos) {
+				strcpy((char *) &CmdLine[2], HistPos->String);
+				CmdLine[0] = CmdLine[1] = (BYTE) strlen((char *) &CmdLine[2]);
+				CmdLine[255 + 4] = 0;
+				makestartposgood();
+			}
+
+			TabbedLast = false;
+			break;
+		case KEY_BACKSPACE:
+			// Move to next entry in the command history
+
+			if (HistPos && HistPos->Newer) {
+				HistPos = HistPos->Newer;
+
+				strcpy((char *) &CmdLine[2], HistPos->String);
+				CmdLine[0] = CmdLine[1] = (BYTE) strlen((char *) &CmdLine[2]);
+			} else {
+				HistPos = NULL;
+				CmdLine[0] = CmdLine[1] = 0;
+			}
+			CmdLine[255 + 4] = 0;
+			makestartposgood();
+			TabbedLast = false;
+			break;
+
+		case KEY_LCTRL:
+			// Execute command line (ENTER)
+			CmdLine[2 + CmdLine[0]] = 0;
+
+			if (con_scrlock == 1) // NES - If con_scrlock = 1, send console scroll to bottom.
+				RowAdjust = 0; // con_scrlock = 0 does it automatically.
+
+			if (HistHead
+					&& stricmp(HistHead->String, (char *) &CmdLine[2]) == 0) {
+				// Command line was the same as the previous one,
+				// so leave the history list alone
+			} else {
+				// Command line is different from last command line,
+				// or there is nothing in the history list,
+				// so add it to the history list.
+
+				History *temp = (History *) Malloc(
+						sizeof(struct History) + CmdLine[0]);
+
+				strcpy(temp->String, (char *) &CmdLine[2]);
+				temp->Older = HistHead;
+				if (HistHead) {
+					HistHead->Newer = temp;
+				}
+				temp->Newer = NULL;
+				HistHead = temp;
+
+				if (!HistTail) {
+					HistTail = temp;
+				}
+
+				if (HistSize == MAXHISTSIZE) {
+					HistTail = HistTail->Newer;
+					M_Free(HistTail->Older);
+				} else {
+					HistSize++;
+				}
+			}
+			HistPos = NULL;
+			Printf(127, "]%s\n", &CmdLine[2]);
+			CmdLine[0] = CmdLine[1] = CmdLine[255 + 4] = 0;
+			AddCommandString((char *) &CmdLine[2]);
+			TabbedLast = false;
+			break;
+
+		default:
+			if ((ev->data1 == KEY_LALT) || (ev->data1 == KEY_ENTER)
+					|| (cmd && !strcmp(cmd, "toggleconsole"))) {
+				memset(&CmdLine[2], 0, 255);
+				CmdLine[0] = CmdLine[1] = 0;
+				C_ToggleConsole();
+			}
+
+			break;
+		}
+
+		return true;
+	}
+#else
 	if (ev->type == ev_keyup)
 	{
 		switch (ev->data1)
@@ -1392,6 +1574,7 @@ BOOL C_Responder (event_t *ev)
 	{
 		return C_HandleKey (ev, CmdLine, 255);
 	}
+#endif
 
 	if(ev->type == ev_mouse)
 		return true;
