@@ -170,6 +170,7 @@ void IntDownloadComplete(void)
 
     // Try to save to the wad paths in this order -- Hyper_Eye
     D_AddSearchDir(dirs, Args.CheckValue("-waddir"), separator);
+    D_AddSearchDir(dirs, getenv("HOME"), separator);
     D_AddSearchDir(dirs, getenv("DOOMWADDIR"), separator);
     D_AddSearchDir(dirs, getenv("DOOMWADPATH"), separator);
     D_AddSearchDir(dirs, waddirs.cstring(), separator);

@@ -1866,6 +1866,7 @@ bool M_Responder (event_t* ev)
 		switch(ch)
 		{
 		char *tempC;
+		case KEY_BACKSPACE:
 	    case KEY_LEFTARROW:
 		if (saveCharIndex > 0)
 		{
